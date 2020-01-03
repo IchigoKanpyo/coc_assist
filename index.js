@@ -2,6 +2,8 @@ const path=require('path');
 const express=require('express');
 const app=express();
 
+const expressWs=require('express-ws')(app);
+const chat=require('./src/chat');
 
 
 // ポートはheroku用の環境変数とローカル用の手動を設定しておく
@@ -18,3 +20,6 @@ app.use(log.access.add); // accessログに記録するためのミドルウェ�
 app.get('/log/usage', (req, res)=>{ res.send(log.usage.get()) }); 
 // JSON形式でアクセスログを返すAPI
 app.get('/log/access', (req, res)=>{ res.send(log.access.get()) }); 
+
+
+app.ws('/chat', chat);
