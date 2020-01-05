@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+    <title>Document</title>
+</head>
+<body>
+    <div id="app">
+        <h1>プレイヤー用</h1>
+        <p>{{message}}</p>
+        <el-dialog
+            title="Request"
+            :visible.sync="dialogVisible"
+            width="30%">
+            <span>ダイスを振ってください</span>
+            <h1>{{dice.rollCounts}}D{{dice.type}}</h1>
+            <span slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="dialogVisible = false">Confirm</el-button>
+            </span>
+        </el-dialog>
+    </div>
+</body>
+<script>
+var app = new Vue({
+        el: '#app',
+        data: {
+            message: 'Hello Vue!',
+            ws:{},
+            dice:{},
+            dialogVisible:false
+        },
+        mounted(){
+            this.initialize();
+        },
+        methods: {
+            initialize:function(){
+                let address = location.origin.replace('https', 'wss');
+                address = address.replace('http', 'ws');
+                this.ws=new WebSocket(address+'/coc');
+                ws = this.ws;
+                ws.addEventListener('open', ()=>{ ws.send(JSON.stringify({ user: "take", method: 'entry',role:"player"})); });
+                ws.addEventListener('message', message=>{
+                        const json=JSON.parse(message.data);
+                        switch (json.method) {
+                            case 'dice':
+                                console.log(json)
+                                this.getDice(json.dice);
+                                break;
+                            default:
+                                break;
+                        }
+                });
+            },
+            getDice(dice){
+                this.dice = dice;
+                this.dialogVisible = true;
+            }
+        },
+    })
+</script>
+</script>
+</html>

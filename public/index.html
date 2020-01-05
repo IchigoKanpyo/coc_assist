@@ -18,8 +18,9 @@
 window.addEventListener('DOMContentLoaded', ()=>{
     const name=prompt('名前を入れてください');
     document.getElementById('name').value=name;
-
-    const ws=new WebSocket(location.origin.replace('https', 'wss')+'/chat');
+    let address = location.origin.replace('https', 'wss');
+    address = address.replace('http', 'ws');
+    const ws=new WebSocket(address+'/chat');
     ws.addEventListener('open', ()=>{ ws.send(JSON.stringify({ user: name, method: 'connect' })); });
 
     const input=document.getElementById('input');

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+    <title>Document</title>
+</head>
+<body>
+    <div id="app">
+        <h1>ゲームキーパー用</h1>
+        <p>{{message}}</p>
+        <el-form ref="form" :model="form" label-width="120px">
+            <el-form-item label="ダイスの種類">
+                <el-radio-group v-model="form.type">
+                    <el-radio :label="6">6面</el-radio>
+                    <el-radio :label="10">10面</el-radio>
+                    <el-radio :label="100">100面</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="振る回数">
+                <el-radio-group v-model="form.rollCounts">
+                    <el-radio :label="1">1回</el-radio>
+                    <el-radio :label="3">3</el-radio>
+                    <el-radio :label="10">10回</el-radio>
+                    <el-radio :label="customRollCounts">
+                        <el-input-number v-model="customRollCounts" :min="1" :max="100"></el-input-number>
+                    </el-radio>
+                </el-radio-group>
+            </el-form-item>                        
+            <el-form-item>
+                <el-button type="primary" @click="send(form)">ダイスを送信</el-button>
+            </el-form-item>
+        </el-form>
+    </div>
+</body>
+<script>
+var app = new Vue({
+        el: '#app',
+        data: {
+            message: 'Hello Vue!',
+            ws:{},
+            type:6,
+            form:{
+                type:6,
+                rollCounts:1,
+            },
+            customRollCounts:100
+        },
+        mounted(){
+            this.initialize();
+        },
+        methods: {
+            initialize:function(){
+                let address = location.origin.replace('https', 'wss');
+                address = address.replace('http', 'ws');
+                this.ws=new WebSocket(address+'/coc');
+                ws = this.ws;
+                ws.addEventListener('open', ()=>{ ws.send(JSON.stringify({ user: "take", method: 'entry',role:"keeper"})); });
+                ws.addEventListener('message', message=>{
+                        const json=JSON.parse(message.data);
+                        console.log(json);
+                });
+            },
+            send:function(dice){
+                console.log("dice")
+                data={type:dice.type,rollCounts:dice.rollCounts};
+                this.ws.send(JSON.stringify({method: 'dice',dice:data}));
+            }
+        },
+    })
+</script>
+</html>

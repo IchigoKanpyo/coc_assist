@@ -5,6 +5,7 @@ const app=express();
 const expressWs=require('express-ws')(app);
 const chat=require('./src/chat');
 
+const coc=require('./src/coc');
 
 // ポートはheroku用の環境変数とローカル用の手動を設定しておく
 app.set('port', process.env.PORT || 5050);
@@ -23,3 +24,7 @@ app.get('/log/access', (req, res)=>{ res.send(log.access.get()) });
 
 
 app.ws('/chat', chat);
+
+
+app.ws('/coc', coc);
+
