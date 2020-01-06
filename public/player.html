@@ -10,16 +10,14 @@
     <!-- import JavaScript -->
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
 
-    <title>Document</title>
+    <title>プレイヤー用</title>
 </head>
 <body>
     <div id="app">
         <h1>プレイヤー用</h1>
         <p>{{message}}</p>
-        <el-dialog
-            title="Request"
-            :visible.sync="dialogVisible"
-            width="30%">
+
+        <el-dialog title="Request" :visible.sync="dialogVisible" width="80%">
             <span>ダイスを振ってください</span>
             <h1>{{dice.rollCounts}}D{{dice.type}}</h1>
             <span slot="footer" class="dialog-footer">
@@ -49,6 +47,7 @@ var app = new Vue({
                 ws.addEventListener('open', ()=>{ ws.send(JSON.stringify({ user: "take", method: 'entry',role:"player"})); });
                 ws.addEventListener('message', message=>{
                         const json=JSON.parse(message.data);
+                        console.log(json)
                         switch (json.method) {
                             case 'dice':
                                 console.log(json)

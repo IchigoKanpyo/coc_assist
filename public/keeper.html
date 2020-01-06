@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="jp">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,12 +10,16 @@
     <!-- import JavaScript -->
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
 
-    <title>Document</title>
+    <title>ゲームキーパー用</title>
 </head>
 <body>
     <div id="app">
         <h1>ゲームキーパー用</h1>
         <p>{{message}}</p>
+        <ul>
+            <li v-for="item in ownerSessions">{{item.name}}:{{item.status}}:{{item.owner}}</li>
+        </ul>
+        <el-button @click="sessionCreate">セッション作成</el-button>
         <el-form ref="form" :model="form" label-width="120px">
             <el-form-item label="ダイスの種類">
                 <el-radio-group v-model="form.type">
@@ -27,13 +31,13 @@
             <el-form-item label="振る回数">
                 <el-radio-group v-model="form.rollCounts">
                     <el-radio :label="1">1回</el-radio>
-                    <el-radio :label="3">3</el-radio>
+                    <el-radio :label="3">3回</el-radio>
                     <el-radio :label="10">10回</el-radio>
                     <el-radio :label="customRollCounts">
                         <el-input-number v-model="customRollCounts" :min="1" :max="100"></el-input-number>
                     </el-radio>
                 </el-radio-group>
-            </el-form-item>                        
+            </el-form-item>
             <el-form-item>
                 <el-button type="primary" @click="send(form)">ダイスを送信</el-button>
             </el-form-item>
@@ -51,7 +55,8 @@ var app = new Vue({
                 type:6,
                 rollCounts:1,
             },
-            customRollCounts:100
+            customRollCounts:100,
+            ownerSessions:[],
         },
         mounted(){
             this.initialize();
@@ -63,15 +68,34 @@ var app = new Vue({
                 this.ws=new WebSocket(address+'/coc');
                 ws = this.ws;
                 ws.addEventListener('open', ()=>{ ws.send(JSON.stringify({ user: "take", method: 'entry',role:"keeper"})); });
-                ws.addEventListener('message', message=>{
-                        const json=JSON.parse(message.data);
-                        console.log(json);
-                });
+                ws.addEventListener('message', this.messageEventDispatcher);
             },
             send:function(dice){
                 console.log("dice")
                 data={type:dice.type,rollCounts:dice.rollCounts};
                 this.ws.send(JSON.stringify({method: 'dice',dice:data}));
+            },
+            sessionCreate:function(){
+                let session = {name:"test",status:"waiting",owner:"take"};
+                this.ownerSessions.push(session);
+                this.ws.send(JSON.stringify({method: 'session/create',session:session}));
+            },
+            messageEventDispatcher:function(message){
+                const json=JSON.parse(message.data);
+                switch (json.method) {
+                    case "session/create":
+                        if(json.result.code == 200){
+                            let putSession = this.ownerSessions.find(a=>{return a.name == json.session.name && a.status == "waiting"});
+                            putSession.status = "ready";
+                        }else if(json.result.code != 200){
+                            let putSession = this.ownerSessions.find(a=>{return a.name == json.session.name && a.status == "waiting"});
+                            putSession.status = "reject";
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                console.log(json);
             }
         },
     })
