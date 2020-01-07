@@ -1,7 +1,20 @@
 module.exports = class CoC{
     constructor(){
         this.cocClients=[];
-        this.sessions=[];
+        this.sessions=[{
+                sessionId:"test",
+                sessionName:"testSession",
+                owener:"testKeeper"
+            },{
+                sessionId:"test2",
+                sessionName:"testSession2",
+                owener:"testKeeper"
+            },{
+                sessionId:"test3",
+                sessionName:"testSession3",
+                owener:"testKeeper2"
+            }
+        ];
         this.methods=[];
     }
     getKeeper(){
@@ -17,38 +30,54 @@ module.exports = class CoC{
         ws.on('message', message=>{
             console.log("message");
             const json=JSON.parse(message);
-            switch (json.method) {
-                case "entry":
-                    console.log("entry");
-                    this.cocClients.forEach(a=>{ if( a===ws && a.role==undefined && a.name==null) a.role=json.role });
-                    this.cocClients.forEach(a=>{ a.send(JSON.stringify(this.cocClients)); });
-                    break;
-                case "dice":
-                    console.log("dice");
-                    let dice=json.dice;
-                    this.cocClients.filter(a=>{
-                        return a.role == "player";
-                    }).forEach(a=>{
-                        a.send(JSON.stringify(json));
-                    });
-                    break;
-                case "response":
-                    console.log("response")
-                    let response = json;
-                    let keepers = this.getKeeper();
-                    keepers.forEach(a=>{
-                        a.send(JSON.stringify(response));
-                    });
-                    break;
-                default:
-                    break;
+
+            // セッションに参加する
+            this.sub("entry",()=>{
+                // Clientのnameとroleを登録
+                this.cocClients.forEach(a=>{
+                    if( a===ws && a.role==undefined && a.name==null){
+                        a.role = json.role;
+                        a.id = json.id; 
+                        a.name = json.name;
+                        a.sessionId = json.sessionId;
+                    }
+                });
+                // 参加中の全てのクライアントに現在接続しているクライアント一覧を送信
+                this.cocClients.forEach(a=>{ a.send(JSON.stringify(this.cocClients)); });
+            })
+            // diceリクエストを投げる※requestに置き換わる予定            
+            this.sub("dice",()=>{
+                let dice=json.dice;
+                this.cocClients.filter(a=>{
+                    return a.role == "player";
+                }).forEach(a=>{
+                    a.send(JSON.stringify(json));
+                });
+            })
+            
+            this.sub("response",()=>{
+                let response = json;
+                let keepers = this.getKeeper();
+                keepers.forEach(a=>{
+                    a.send(JSON.stringify(response));
+                });
+            })
+            this.sub('join',()=>{
+                let join = json;
+                
+            })
+            // 購読されているメソッドだけ実行する
+            if(typeof this.methods[json.method] == 'function'){
+                console.log(json.method);
+                this.methods[json.method]();
             }
 
             if( json.method!=null ) json.clients=this.cocClients.map(a=> a.name);
 
 
         });
-        ws.on('close', ()=>{    
+        // websocketが閉じたときに呼び出される
+        ws.on('close', ()=>{
             console.log("close");
             const name=this.cocClients.find(a=> a===ws).role;
             this.cocClients=this.cocClients.filter(a=> a!==ws);
@@ -56,5 +85,8 @@ module.exports = class CoC{
         });
 
     }
-    
+    // メソッドを登録するcallbackは、msgとclientを引数に持つ
+    sub(method,callback){
+        this.methods[method] = callback;
+    }
 }

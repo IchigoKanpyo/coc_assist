@@ -69,7 +69,16 @@ var app = new Vue({
                 address = address.replace('http', 'ws');
                 this.ws=new WebSocket(address+'/coc');
                 ws = this.ws;
-                ws.addEventListener('open', ()=>{ ws.send(JSON.stringify({ user: "take", method: 'entry',role:"keeper"})); });
+                ws.addEventListener('open', ()=>{
+                    let req = {
+                        id:"0",
+                        name: "take",
+                        method: 'entry',
+                        role:"keeper",
+                        sessionId:"test"
+                    }
+                    ws.send(JSON.stringify(req));
+                });
                 ws.addEventListener('message', this.messageEventDispatcher);
             },
             send:function(dice){
