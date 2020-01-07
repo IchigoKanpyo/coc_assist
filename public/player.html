@@ -10,16 +10,49 @@
     <!-- import JavaScript -->
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
 
-    <title>プレイヤー用</title>
+    <title>Document</title>
+    <style>
+        .request{
+            list-style: none;
+        }
+        .request li{
+            display: table;
+            position: relative;
+            width:80%;
+            height: 2.5em;
+            border:1px solid black;
+            padding-left: 1em;
+        }
+        .request li span{
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .request .done{
+            position: absolute;
+            top:0;
+            left:0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+    </style>
 </head>
 <body>
     <div id="app">
         <h1>プレイヤー用</h1>
-        <p>{{message}}</p>
-
-        <el-dialog title="Request" :visible.sync="dialogVisible" width="80%">
-            <span>ダイスを振ってください</span>
-            <h1>{{dice.rollCounts}}D{{dice.type}}</h1>
+        <ul class="request">
+            <li v-for="request in requests" @click="getDice(request.dice)">
+                <div class="done" v-if="request.dice.status=='done'"></div>
+                <span>{{request.method}}:{{request.requestId}}:{{request.dice.rollCounts}}D{{request.dice.type}}:{{request.dice.status}}</span>
+            </li>
+        </ul>
+        <el-dialog
+            title="Request"
+            :visible.sync="dialogVisible"
+            width="80%">
+            <h3>{{dice.rollCounts}}D{{dice.type}}</h3>
+            <el-button v-if="dice.status=='hold'" @click="dice.status='done'">Roll</el-button>
+            <p v-else>6</p>
             <span slot="footer" class="dialog-footer">
                 <el-button type="primary" @click="dialogVisible = false">Confirm</el-button>
             </span>
@@ -33,7 +66,8 @@ var app = new Vue({
             message: 'Hello Vue!',
             ws:{},
             dice:{},
-            dialogVisible:false
+            dialogVisible:false,
+            requests:[]
         },
         mounted(){
             this.initialize();
@@ -51,7 +85,8 @@ var app = new Vue({
                         switch (json.method) {
                             case 'dice':
                                 console.log(json)
-                                this.getDice(json.dice);
+                                json.dice.status = "hold";
+                                this.requests.unshift(json);
                                 break;
                             default:
                                 break;

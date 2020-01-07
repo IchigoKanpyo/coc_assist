@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="jp">
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/2.3.1/sha.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -15,6 +16,11 @@
 <body>
     <div id="app">
         <h1>ゲームキーパー用</h1>
+        <ul>
+            <li v-for="request in requests">
+                {{request.id}}:{{request.rollCounts}}D{{request.type}}:{{request.status}}:{{request.result}}
+            </li>
+        </ul>
         <p>{{message}}</p>
         <ul>
             <li v-for="item in ownerSessions">{{item.name}}:{{item.status}}:{{item.owner}}</li>
@@ -56,7 +62,7 @@ var app = new Vue({
                 rollCounts:1,
             },
             customRollCounts:100,
-            ownerSessions:[],
+            requests:[]
         },
         mounted(){
             this.initialize();
@@ -72,30 +78,21 @@ var app = new Vue({
             },
             send:function(dice){
                 console.log("dice")
+                let src_text = Date.now()+"";
+                let shaObj = new jsSHA("SHA-512", "TEXT");
+                shaObj.update(src_text);
+                let sha256digest = shaObj.getHash("HEX");
+                let requestId = sha256digest.slice(0,8);
                 data={type:dice.type,rollCounts:dice.rollCounts};
-                this.ws.send(JSON.stringify({method: 'dice',dice:data}));
-            },
-            sessionCreate:function(){
-                let session = {name:"test",status:"waiting",owner:"take"};
-                this.ownerSessions.push(session);
-                this.ws.send(JSON.stringify({method: 'session/create',session:session}));
-            },
-            messageEventDispatcher:function(message){
-                const json=JSON.parse(message.data);
-                switch (json.method) {
-                    case "session/create":
-                        if(json.result.code == 200){
-                            let putSession = this.ownerSessions.find(a=>{return a.name == json.session.name && a.status == "waiting"});
-                            putSession.status = "ready";
-                        }else if(json.result.code != 200){
-                            let putSession = this.ownerSessions.find(a=>{return a.name == json.session.name && a.status == "waiting"});
-                            putSession.status = "reject";
-                        }
-                        break;
-                    default:
-                        break;
+                let request = {
+                    id:requestId,
+                    status: "wait",
+                    result:null,
+                    rollCounts:dice.rollCounts,
+                    type:dice.type
                 }
-                console.log(json);
+                this.requests.push(request);
+                this.ws.send(JSON.stringify({method: 'dice',dice:data,requestId:requestId}));
             }
         },
     })
