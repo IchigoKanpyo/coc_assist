@@ -22,10 +22,6 @@
             </li>
         </ul>
         <p>{{message}}</p>
-        <ul>
-            <li v-for="item in ownerSessions">{{item.name}}:{{item.status}}:{{item.owner}}</li>
-        </ul>
-        <el-button @click="sessionCreate">セッション作成</el-button>
         <el-form ref="form" :model="form" label-width="120px">
             <el-form-item label="ダイスの種類">
                 <el-radio-group v-model="form.type">
@@ -93,6 +89,23 @@ var app = new Vue({
                 }
                 this.requests.push(request);
                 this.ws.send(JSON.stringify({method: 'dice',dice:data,requestId:requestId}));
+            },
+            messageEventDispatcher:function(msg){
+                const json=JSON.parse(msg.data);
+                console.log(json);
+                switch (json.method) {
+                    case 'response':
+                        let target = this.requests.find(a=>{
+                            return a.id == json.id;
+                        })
+                        if(target != undefined){
+                            target.result = json.data;
+                            target.status = 'done';
+                        }
+                        break;                
+                    default:
+                        break;
+                }
             }
         },
     })

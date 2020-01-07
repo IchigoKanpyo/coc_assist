@@ -14,18 +14,10 @@
     <style>
         .request{
             list-style: none;
+            padding: 0;
         }
         .request li{
-            display: table;
-            position: relative;
-            width:80%;
-            height: 2.5em;
-            border:1px solid black;
-            padding-left: 1em;
-        }
-        .request li span{
-            display: table-cell;
-            vertical-align: middle;
+            cursor: pointer;
         }
         .request .done{
             position: absolute;
@@ -35,24 +27,38 @@
             height: 100%;
             background-color: rgba(0,0,0,0.5);
         }
+        /* right */
+        .right-enter-active, .right-leave-active {
+            transform: translate(0px, 0px);
+            transition: transform 500ms cubic-bezier(0.25, 0.1, 0.25, 1.0) 0ms;
+        }
+
+        .right-enter, .right-leave-to {
+            transform: translateX(100vw) translateX(0px);
+        }
+        /* end */
     </style>
 </head>
 <body>
     <div id="app">
         <h1>プレイヤー用</h1>
         <ul class="request">
-            <li v-for="request in requests" @click="getDice(request.dice)">
-                <div class="done" v-if="request.dice.status=='done'"></div>
-                <span>{{request.method}}:{{request.requestId}}:{{request.dice.rollCounts}}D{{request.dice.type}}:{{request.dice.status}}</span>
-            </li>
+            <transition-group name="right"  tag="li">
+                <li @click="getDice(request)" v-for="request in requests" v-bind:key="request.requestId">
+                    <el-card style="position: relative;">
+                        <div class="done" v-if="request.dice.status=='done'"></div>
+                        <span>{{request.method}}:{{request.requestId}}:{{request.dice.rollCounts}}D{{request.dice.type}}:{{request.dice.status}}</span>
+                    </el-card>
+                </li>
+            </transition>
         </ul>
         <el-dialog
             title="Request"
             :visible.sync="dialogVisible"
             width="80%">
             <h3>{{dice.rollCounts}}D{{dice.type}}</h3>
-            <el-button v-if="dice.status=='hold'" @click="dice.status='done'">Roll</el-button>
-            <p v-else>6</p>
+            <el-button v-if="dice.status=='hold'" @click="rollDice(dice)">Roll</el-button>
+            <p v-else>{{dice.result}}</p>
             <span slot="footer" class="dialog-footer">
                 <el-button type="primary" @click="dialogVisible = false">Confirm</el-button>
             </span>
@@ -67,7 +73,8 @@ var app = new Vue({
             ws:{},
             dice:{},
             dialogVisible:false,
-            requests:[]
+            requests:[],
+            currentReq:""
         },
         mounted(){
             this.initialize();
@@ -93,9 +100,20 @@ var app = new Vue({
                         }
                 });
             },
-            getDice(dice){
-                this.dice = dice;
+            getDice(req){
+                this.dice = req.dice;
+                this.currentReq = req;
                 this.dialogVisible = true;
+            },
+            rollDice(dice){
+                dice.status='done'
+                dice.result=6;
+                let response = {};
+                response.method="response";
+                response.type="dice";
+                response.data=6;
+                response.id=this.currentReq.requestId;
+                this.ws.send(JSON.stringify(response));
             }
         },
     })
